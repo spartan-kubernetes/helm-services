@@ -1,0 +1,18 @@
+project:
+  projectRoot: vr.fmwk.com
+  name: project-name
+  owner: wr
+  environment: dev
+
+services:
+  - name: api-service
+    type: backend
+    image:
+      name: nginx
+      version: latest
+      runAsUser: 6500
+      runAsRoot: false
+    network:
+      port: 80
+      protocol: TCP
+      healthCheck: /v1/api/service/health

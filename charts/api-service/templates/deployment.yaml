@@ -1,0 +1,99 @@
+{{$namespace := dict "Values" .Values "KubernetesType" "namespace"}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ lower (trimAll "-" .Values.project.name) }}
+  labels:
+    {{- include "deployment.labels" $namespace | indent 4}}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-service
+  namespace: service-namespace
+  labels:
+    vr.fmwk.com/service-name: api-service
+    vr.fmwk.com/project: project-name
+    vr.fmwk.com/environment: dev
+    vr.fmwk.com/service-type: backend
+    vr.fmwk.com/k8s-type: service
+    vr.fmwk.com/owner: wr
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+      protocol: TCP
+  selector:
+    vr.fmwk.com/service-name: api-service
+    vr.fmwk.com/project: project-name
+    vr.fmwk.com/environment: dev
+    vr.fmwk.com/service-type: backend
+    vr.fmwk.com/k8s-type: pod
+    vr.fmwk.com/owner: wr
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-deployment
+  namespace: service-namespace
+  labels:
+    vr.fmwk.com/service-name: api-service
+    vr.fmwk.com/project: project-name
+    vr.fmwk.com/environment: dev
+    vr.fmwk.com/service-type: backend
+    vr.fmwk.com/k8s-type: deployment
+    vr.fmwk.com/owner: wr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      vr.fmwk.com/service-name: api-service
+      vr.fmwk.com/project: project-name
+      vr.fmwk.com/environment: dev
+      vr.fmwk.com/service-type: backend
+      vr.fmwk.com/k8s-type: pod
+      vr.fmwk.com/owner: wr
+  template:
+    metadata:
+      name: service-pod
+      namespace: service-namespace
+      labels:
+        vr.fmwk.com/service-name: api-service
+        vr.fmwk.com/project: project-name
+        vr.fmwk.com/environment: dev
+        vr.fmwk.com/service-type: backend
+        vr.fmwk.com/k8s-type: pod
+        vr.fmwk.com/owner: wr
+    spec:
+      containers:
+        - name: service-container
+          image: nginx:latest
+          securityContext:
+            runAsUser: 6500
+            runAsNonRoot: true
+            privileged: false
+            capabilities:
+              drop:
+                - CHOWN
+                - SYS_CHROOT
+                - SETUID
+                - SETGID
+          livenessProbe:
+            httpGet:
+              port: 80
+              path: /v1/api/service/health
+          readinessProbe:
+            httpGet:
+              port: 80
+              path: /v1/api/service/health
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+---
+{{/*pod volume mount if available*/}}
+{{/*optional: pod network policy*/}}
